@@ -129,6 +129,21 @@ class OTPTheme {
   /// If null, uses the theme's default selection handle color.
   final Color? selectionHandleColor;
 
+  /// Padding inside the text field.
+  ///
+  /// Controls the spacing between the text and the field borders.
+  /// Defaults to [EdgeInsets.zero] for perfect center alignment.
+  ///
+  /// Example:
+  /// ```dart
+  /// OTPTheme.custom(
+  ///   borderColor: Colors.blue,
+  ///   focusedBorderColor: Colors.blueAccent,
+  ///   contentPadding: EdgeInsets.symmetric(vertical: 8),
+  /// )
+  /// ```
+  final EdgeInsetsGeometry contentPadding;
+
   const OTPTheme({
     required this.borderColor,
     required this.focusedBorderColor,
@@ -147,6 +162,7 @@ class OTPTheme {
     this.cursorWidth = 2.0,
     this.selectionColor,
     this.selectionHandleColor,
+    this.contentPadding = EdgeInsets.zero,
   });
 
   /// Creates a light theme preset optimized for light backgrounds.
@@ -259,6 +275,7 @@ class OTPTheme {
     double cursorWidth = 2.0,
     Color? selectionColor,
     Color? selectionHandleColor,
+    EdgeInsetsGeometry contentPadding = EdgeInsets.zero,
   }) {
     return OTPTheme(
       borderColor: borderColor,
@@ -278,6 +295,7 @@ class OTPTheme {
       cursorWidth: cursorWidth,
       selectionColor: selectionColor,
       selectionHandleColor: selectionHandleColor,
+      contentPadding: contentPadding,
     );
   }
 
@@ -312,6 +330,7 @@ class OTPTheme {
     double? cursorWidth,
     Color? selectionColor,
     Color? selectionHandleColor,
+    EdgeInsetsGeometry? contentPadding,
   }) {
     return OTPTheme(
       borderColor: borderColor ?? this.borderColor,
@@ -331,6 +350,7 @@ class OTPTheme {
       cursorWidth: cursorWidth ?? this.cursorWidth,
       selectionColor: selectionColor ?? this.selectionColor,
       selectionHandleColor: selectionHandleColor ?? this.selectionHandleColor,
+      contentPadding: contentPadding ?? this.contentPadding,
     );
   }
 }

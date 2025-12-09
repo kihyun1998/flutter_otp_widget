@@ -1,6 +1,6 @@
 name: flutter_otp_widget
 description: A highly customizable OTP (One-Time Password) text field widget for Flutter with support for multiple styles, themes, and input types.
-version: 1.0.2
+version: 1.0.3
 homepage: https://github.com/kihyun1998/flutter_otp_widget
 repository: https://github.com/kihyun1998/flutter_otp_widget
 issue_tracker: https://github.com/kihyun1998/flutter_otp_widget/issues

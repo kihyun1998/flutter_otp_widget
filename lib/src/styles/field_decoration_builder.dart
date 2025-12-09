@@ -80,7 +80,7 @@ class FieldDecorationBuilder {
       counterText: '',
       filled: fillColor != null,
       fillColor: fillColor,
-      contentPadding: const EdgeInsets.symmetric(vertical: 12),
+      contentPadding: theme.contentPadding,
       border: OutlineInputBorder(
         borderRadius: theme.borderRadius,
         borderSide: BorderSide(color: borderColor, width: borderWidth),
@@ -122,7 +122,7 @@ class FieldDecorationBuilder {
       counterText: '',
       filled: fillColor != null,
       fillColor: fillColor,
-      contentPadding: const EdgeInsets.symmetric(vertical: 12),
+      contentPadding: theme.contentPadding,
       border: UnderlineInputBorder(
         borderSide: BorderSide(color: borderColor, width: borderWidth),
       ),
@@ -168,7 +168,7 @@ class FieldDecorationBuilder {
       counterText: '',
       filled: fillColor != null,
       fillColor: fillColor,
-      contentPadding: const EdgeInsets.symmetric(vertical: 12),
+      contentPadding: theme.contentPadding,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.all(circularRadius),
         borderSide: BorderSide(color: borderColor, width: borderWidth),

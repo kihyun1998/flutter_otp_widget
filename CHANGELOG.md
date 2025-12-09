@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.3]
+
+### Fixes
+- Fixed text vertical alignment in OTP fields by changing default `contentPadding` to `EdgeInsets.zero`
+- Added `contentPadding` property to `OTPTheme` for customizable text field padding
+
 ## [1.0.2]
 
 ### Features
