@@ -71,7 +71,7 @@ Add this to your package's `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  flutter_otp_widget: ^1.0.1
+  flutter_otp_widget: ^1.0.2
 ```
 
 Then run:

@@ -119,6 +119,16 @@ class OTPTheme {
   /// Defaults to 2.0.
   final double cursorWidth;
 
+  /// Color of the text selection (highlight color when text is selected/dragged).
+  ///
+  /// If null, uses the theme's default selection color.
+  final Color? selectionColor;
+
+  /// Color of the text selection handles.
+  ///
+  /// If null, uses the theme's default selection handle color.
+  final Color? selectionHandleColor;
+
   const OTPTheme({
     required this.borderColor,
     required this.focusedBorderColor,
@@ -135,6 +145,8 @@ class OTPTheme {
     this.cursorColor,
     this.cursorHeight,
     this.cursorWidth = 2.0,
+    this.selectionColor,
+    this.selectionHandleColor,
   });
 
   /// Creates a light theme preset optimized for light backgrounds.
@@ -245,6 +257,8 @@ class OTPTheme {
     Color? cursorColor,
     double? cursorHeight,
     double cursorWidth = 2.0,
+    Color? selectionColor,
+    Color? selectionHandleColor,
   }) {
     return OTPTheme(
       borderColor: borderColor,
@@ -262,6 +276,8 @@ class OTPTheme {
       cursorColor: cursorColor,
       cursorHeight: cursorHeight,
       cursorWidth: cursorWidth,
+      selectionColor: selectionColor,
+      selectionHandleColor: selectionHandleColor,
     );
   }
 
@@ -294,6 +310,8 @@ class OTPTheme {
     Color? cursorColor,
     double? cursorHeight,
     double? cursorWidth,
+    Color? selectionColor,
+    Color? selectionHandleColor,
   }) {
     return OTPTheme(
       borderColor: borderColor ?? this.borderColor,
@@ -311,6 +329,8 @@ class OTPTheme {
       cursorColor: cursorColor ?? this.cursorColor,
       cursorHeight: cursorHeight ?? this.cursorHeight,
       cursorWidth: cursorWidth ?? this.cursorWidth,
+      selectionColor: selectionColor ?? this.selectionColor,
+      selectionHandleColor: selectionHandleColor ?? this.selectionHandleColor,
     );
   }
 }

@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.2]
+
+### Features
+- Added `selectionColor` and `selectionHandleColor` properties for customizing text selection appearance
+
+### Fixes
+- Fixed Tab and Shift+Tab keyboard navigation to properly move between OTP fields
+
 ## [1.0.1]
 
 ### Improvements

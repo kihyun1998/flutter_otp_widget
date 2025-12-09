@@ -343,6 +343,18 @@ class OTPTextField extends StatefulWidget {
   /// uses 2.0.
   final double? cursorWidth;
 
+  /// Overrides the text selection color (highlight color when text is selected).
+  ///
+  /// If null, uses the value from [theme]. If [theme] is also null,
+  /// uses the theme's default selection color.
+  final Color? selectionColor;
+
+  /// Overrides the text selection handle color.
+  ///
+  /// If null, uses the value from [theme]. If [theme] is also null,
+  /// uses the theme's default selection handle color.
+  final Color? selectionHandleColor;
+
   /// Configures how the text input should be capitalized.
   ///
   /// Only affects [OTPInputType.text] and [OTPInputType.any].
@@ -395,6 +407,8 @@ class OTPTextField extends StatefulWidget {
     this.cursorColor,
     this.cursorHeight,
     this.cursorWidth,
+    this.selectionColor,
+    this.selectionHandleColor,
     this.textCapitalization = TextCapitalization.none,
     this.keyboardType,
   }) : assert(
@@ -612,41 +626,79 @@ class _OTPTextFieldState extends State<OTPTextField> {
                     return KeyEventResult.handled;
                   }
                 }
+                // Tab: move to next field
+                else if (event.logicalKey == LogicalKeyboardKey.tab &&
+                    !HardwareKeyboard.instance.isShiftPressed) {
+                  if (index < widget.controllers.length - 1) {
+                    widget.focusNodes[index + 1].requestFocus();
+                    // Move cursor to end
+                    widget.controllers[index + 1].selection =
+                        TextSelection.fromPosition(
+                          TextPosition(
+                            offset: widget.controllers[index + 1].text.length,
+                          ),
+                        );
+                    return KeyEventResult.handled;
+                  }
+                }
+                // Shift+Tab: move to previous field
+                else if (event.logicalKey == LogicalKeyboardKey.tab &&
+                    HardwareKeyboard.instance.isShiftPressed) {
+                  if (index > 0) {
+                    widget.focusNodes[index - 1].requestFocus();
+                    // Move cursor to end
+                    widget.controllers[index - 1].selection =
+                        TextSelection.fromPosition(
+                          TextPosition(
+                            offset: widget.controllers[index - 1].text.length,
+                          ),
+                        );
+                    return KeyEventResult.handled;
+                  }
+                }
               }
               return KeyEventResult.ignored;
             },
-            child: TextField(
-              controller: widget.controllers[index],
-              focusNode: widget.focusNodes[index],
-              enabled: widget.enabled,
-              textAlign: TextAlign.center,
-              keyboardType: _getKeyboardType(),
-              textCapitalization: widget.textCapitalization,
-              maxLength: 1,
-              obscureText: widget.obscureText,
-              obscuringCharacter: widget.obscuringCharacter,
-              style: widget.enabled
-                  ? widget.textStyle
-                  : widget.textStyle.copyWith(
-                      color: widget.textStyle.color?.withValues(alpha: 0.5),
-                    ),
-              showCursor: widget.showCursor ?? _theme.showCursor,
-              cursorColor: widget.cursorColor ?? _theme.cursorColor,
-              cursorHeight: widget.cursorHeight ?? _theme.cursorHeight,
-              cursorWidth: widget.cursorWidth ?? _theme.cursorWidth,
-              decoration: _buildDecoration(index),
-              inputFormatters: _getInputFormatters(),
-              onChanged: (value) {
-                _onTextChanged(index, value);
-              },
-              onTap: () {
-                // Move cursor to end when tapped
-                widget
-                    .controllers[index]
-                    .selection = TextSelection.fromPosition(
-                  TextPosition(offset: widget.controllers[index].text.length),
-                );
-              },
+            child: TextSelectionTheme(
+              data: TextSelectionThemeData(
+                cursorColor: widget.cursorColor ?? _theme.cursorColor,
+                selectionColor: widget.selectionColor ?? _theme.selectionColor,
+                selectionHandleColor:
+                    widget.selectionHandleColor ?? _theme.selectionHandleColor,
+              ),
+              child: TextField(
+                controller: widget.controllers[index],
+                focusNode: widget.focusNodes[index],
+                enabled: widget.enabled,
+                textAlign: TextAlign.center,
+                keyboardType: _getKeyboardType(),
+                textCapitalization: widget.textCapitalization,
+                maxLength: 1,
+                obscureText: widget.obscureText,
+                obscuringCharacter: widget.obscuringCharacter,
+                style: widget.enabled
+                    ? widget.textStyle
+                    : widget.textStyle.copyWith(
+                        color: widget.textStyle.color?.withValues(alpha: 0.5),
+                      ),
+                showCursor: widget.showCursor ?? _theme.showCursor,
+                cursorColor: widget.cursorColor ?? _theme.cursorColor,
+                cursorHeight: widget.cursorHeight ?? _theme.cursorHeight,
+                cursorWidth: widget.cursorWidth ?? _theme.cursorWidth,
+                decoration: _buildDecoration(index),
+                inputFormatters: _getInputFormatters(),
+                onChanged: (value) {
+                  _onTextChanged(index, value);
+                },
+                onTap: () {
+                  // Move cursor to end when tapped
+                  widget
+                      .controllers[index]
+                      .selection = TextSelection.fromPosition(
+                    TextPosition(offset: widget.controllers[index].text.length),
+                  );
+                },
+              ),
             ),
           ),
         );
