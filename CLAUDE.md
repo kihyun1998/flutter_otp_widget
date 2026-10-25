@@ -2,17 +2,11 @@
 
 ## Agent skills
 
-### Issue tracker
-
-Issues are tracked in GitHub Issues for `kihyun1998/flutter_otp_widget`. See `docs/agents/issue-tracker.md`.
-
-### Triage labels
-
-Default triage vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
-
-### Domain docs
-
-Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+| Before you | Read |
+|---|---|
+| read, file, comment on or close an issue | `docs/agents/issue-tracker.md` |
+| apply or remove a triage label | `docs/agents/triage-labels.md` |
+| name a domain concept, or work in an area a decision may cover | `docs/agents/domain.md` |
 
 ## Comments
 
