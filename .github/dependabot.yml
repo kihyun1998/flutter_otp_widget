@@ -1,0 +1,28 @@
+# Pub constraint updates for the package root and example/.
+version: 2
+updates:
+  - package-ecosystem: pub
+    directory: /
+    schedule:
+      interval: monthly
+    versioning-strategy: increase-if-necessary
+    labels:
+      - needs-triage
+  - package-ecosystem: pub
+    directory: /example
+    schedule:
+      interval: monthly
+    groups:
+      example:
+        patterns: ["*"]
+    ignore:
+      - dependency-name: flutter_riverpod
+        update-types: ["version-update:semver-major"]
+      - dependency-name: riverpod_annotation
+        update-types: ["version-update:semver-major"]
+      - dependency-name: riverpod_generator
+        update-types: ["version-update:semver-major"]
+      - dependency-name: riverpod_lint
+        update-types: ["version-update:semver-major"]
+    labels:
+      - needs-triage
