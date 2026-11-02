@@ -29,9 +29,13 @@ Issue #1.
   example's `^3.8.1`, read on pub.dev 2026-11-02). Such a PR is closed and
   replaced by a commit that raises the floor by hand, as `flutter_table_plus`
   did with its #197 (maintainer, 2026-11-02).
-- **Unconfirmed:** whether the Riverpod 2.x pin, through `riverpod_generator`'s
-  `analyzer` range, makes the grouped run fail to resolve a newer
-  `build_runner`. Only Dependabot's run status shows it.
+- **The Riverpod 2.x pin holds `build_runner` back without failing the run.**
+  The first grouped run (#8, 2026-11-02) completed successfully and brought
+  `cupertino_icons` 2.0.0 and `flutter_lints` 6.0.0. It did not touch
+  `build_runner`. The two cannot resolve together: `build_runner` 2.17.1
+  needs `analyzer >=14.3.0 <15.0.0` and `build >=5.0.0 <5.1.0`, while
+  `riverpod_generator` 2.6.5, the last 2.x, needs `analyzer ^7.0.0` and
+  `build ^2.0.0` (pub.dev, 2026-11-02).
 
 ## Code
 
