@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.1.0]
 
 ### Features
 - Pasting a whole code into any field fills every field from the first, then calls `onChange` and `onCompleted` once each with the full code. Only the characters `inputType` allows are kept, so a code copied with spaces, hyphens or surrounding text pastes as the code.
