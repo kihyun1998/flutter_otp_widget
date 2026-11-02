@@ -26,6 +26,7 @@ class _Harness {
   Future<void> pump({
     OTPInputType inputType = OTPInputType.number,
     bool enabled = true,
+    void Function(_Harness h, String code)? onCompleted,
   }) async {
     addTearDown(() {
       for (final c in controllers) {
@@ -45,7 +46,10 @@ class _Harness {
             inputType: inputType,
             enabled: enabled,
             onChange: changes.add,
-            onCompleted: completions.add,
+            onCompleted: (code) {
+              completions.add(code);
+              onCompleted?.call(this, code);
+            },
           ),
         ),
       ),
@@ -310,6 +314,37 @@ void main() {
       expect(h.focusNodes.where((f) => f.hasFocus), isEmpty);
     });
 
+    testWidgets('fields cleared in onChange do not complete', (tester) async {
+      final h = _Harness(tester, length: 4);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: OTPTextField(
+              controllers: h.controllers,
+              focusNodes: h.focusNodes,
+              textStyle: const TextStyle(fontSize: 20),
+              onChange: (value) {
+                if (value.length == 4) {
+                  for (final c in h.controllers) {
+                    c.clear();
+                  }
+                }
+              },
+              onCompleted: h.completions.add,
+            ),
+          ),
+        ),
+      );
+
+      for (var i = 0; i < 4; i++) {
+        await h.type(i, '${i + 1}');
+      }
+
+      expect(h.texts, ['', '', '', '']);
+      expect(h.completions, isEmpty);
+      expect(h.focusNodes[3].hasFocus, isTrue);
+    });
+
     testWidgets('a second character typed into a filled field is dropped', (
       tester,
     ) async {
@@ -322,5 +357,61 @@ void main() {
       expect(h.texts, ['1', '', '', '']);
       expect(h.completions, isEmpty);
     });
+  });
+
+  group('completion', () {
+    void refocusFirst(_Harness h, String code) {
+      for (final c in h.controllers) {
+        c.clear();
+      }
+      h.focusNodes[0].requestFocus();
+    }
+
+    List<int> focused(_Harness h) => [
+      for (var i = 0; i < h.length; i++)
+        if (h.focusNodes[i].hasFocus) i,
+    ];
+
+    testWidgets('typing: a refocus requested in onCompleted holds', (
+      tester,
+    ) async {
+      final h = _Harness(tester, length: 4);
+      await h.pump(onCompleted: refocusFirst);
+
+      for (var i = 0; i < 4; i++) {
+        await h.type(i, '${i + 1}');
+      }
+
+      expect(h.completions, ['1234']);
+      expect(h.texts, ['', '', '', '']);
+      expect(focused(h), [0]);
+    });
+
+    testWidgets('typing: a refocus of the last field itself holds', (
+      tester,
+    ) async {
+      final h = _Harness(tester, length: 4);
+      await h.pump(onCompleted: (h, _) => h.focusNodes[3].requestFocus());
+
+      for (var i = 0; i < 4; i++) {
+        await h.type(i, '${i + 1}');
+      }
+
+      expect(focused(h), [3]);
+    });
+
+    for (final index in [0, 2]) {
+      testWidgets('paste into field $index: a refocus requested in '
+          'onCompleted holds', (tester) async {
+        final h = _Harness(tester, length: 4);
+        await h.pump(onCompleted: refocusFirst);
+
+        await h.paste(index, '1234');
+
+        expect(h.completions, ['1234']);
+        expect(h.texts, ['', '', '', '']);
+        expect(focused(h), [0]);
+      });
+    }
   });
 }

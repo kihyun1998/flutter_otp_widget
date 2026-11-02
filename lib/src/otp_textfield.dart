@@ -47,8 +47,8 @@ import 'styles/field_decoration_builder.dart';
 /// Only the characters [inputType] allows are kept. When exactly one per
 /// field remains, every field is filled from the first, whichever field
 /// received the paste; [onChange] and then [onCompleted] are called once with
-/// the full code, and the receiving field loses focus. Otherwise no field
-/// changes and no callback is called.
+/// the full code, and the receiving field loses focus before [onCompleted].
+/// Otherwise no field changes and no callback is called.
 ///
 /// ## Theming
 ///
@@ -112,6 +112,11 @@ class OTPTextField extends StatefulWidget {
   /// Callback invoked when all OTP fields are filled.
   ///
   /// The callback receives the complete OTP string as a parameter.
+  ///
+  /// When the code is completed in the last field or by a paste, that field's
+  /// unfocus is requested before this is called, so a focus requested here,
+  /// such as `focusNodes.first.requestFocus()` after clearing the fields,
+  /// holds. The field still reports `hasFocus` while this runs.
   ///
   /// Example:
   /// ```dart
@@ -562,7 +567,9 @@ class _OTPTextFieldState extends State<OTPTextField> {
     return text.substring(before.length, text.length - after.length);
   }
 
-  /// Writes an accepted paste into every field, then reports it once.
+  /// Writes an accepted paste into every field and reports it once,
+  /// unfocusing the receiving field between [OTPTextField.onChange] and
+  /// [OTPTextField.onCompleted].
   void _applyPendingPaste() {
     final code = _pendingPaste;
     _pendingPaste = null;
@@ -576,8 +583,8 @@ class _OTPTextFieldState extends State<OTPTextField> {
       );
     }
     _reportPaste(widget.onChange, code, 'onChange');
-    _reportPaste(widget.onCompleted, code, 'onCompleted');
     widget.focusNodes[_pendingPasteIndex].unfocus();
+    _reportPaste(widget.onCompleted, code, 'onCompleted');
   }
 
   /// Calls [callback] with a pasted [code], reporting what it throws to
@@ -607,25 +614,19 @@ class _OTPTextFieldState extends State<OTPTextField> {
     }
 
     // Call onChange callback whenever value changes
-    if (widget.onChange != null) {
-      final fullText = widget.controllers.map((c) => c.text).join();
-      widget.onChange!(fullText);
-    }
+    widget.onChange?.call(widget.controllers.map((c) => c.text).join());
 
-    // Check if all fields are filled
+    // The fields as they stand after onChange.
     final otp = widget.controllers.map((c) => c.text).join();
     final isAllFilled = otp.length == widget.controllers.length;
 
     if (text.isNotEmpty) {
-      // If all fields are filled, call completion callback
       if (isAllFilled) {
-        if (widget.onCompleted != null) {
-          widget.onCompleted!(otp);
-        }
-        // Unfocus if it's the last field
+        // The last field unfocuses before onCompleted runs.
         if (index == widget.controllers.length - 1) {
           widget.focusNodes[index].unfocus();
         }
+        widget.onCompleted?.call(otp);
       } else {
         // Move focus to next empty field
         if (index < widget.controllers.length - 1) {

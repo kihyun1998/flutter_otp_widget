@@ -5,6 +5,9 @@
 ### Features
 - Pasting a whole code into any field fills every field from the first, then calls `onChange` and `onCompleted` once each with the full code. Only the characters `inputType` allows are kept, so a code copied with spaces, hyphens or surrounding text pastes as the code.
 
+### Fixes
+- A focus requested inside `onCompleted`, such as moving back to the first field after clearing a wrong code, now holds. When the code is completed in the last field or by a paste, that field's unfocus is now requested after `onChange` and before `onCompleted`, instead of after both.
+
 ### Behaviour changes
 - A paste that leaves a number of allowed characters other than the field count now changes nothing. Before, a paste into an empty field kept its first allowed character.
 
