@@ -9,7 +9,8 @@ all controllers, and the single `onChange`/`onCompleted` report.
 ## Governing decisions
 
 Issue #4: exact length or nothing, replace all fields from the first, one
-`onChange` then one `onCompleted`, the receiving field loses focus.
+`onChange` then one `onCompleted`, the receiving field loses focus. When it
+loses focus is in [completion-focus](completion-focus.md).
 
 ## Design model
 
@@ -69,7 +70,7 @@ Issue #4: exact length or nothing, replace all fields from the first, one
   autofills such a field was not measured.
 - Consumer callbacks run from the microtask, outside `EditableText`'s
   try/catch, so `_reportPaste` catches and reports to `FlutterError` itself;
-  a throwing `onChange` does not stop `onCompleted` or the unfocus.
+  a throwing `onChange` does not stop `onCompleted`.
 
 ## Code
 
