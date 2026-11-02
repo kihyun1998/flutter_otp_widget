@@ -34,6 +34,7 @@ A highly customizable OTP (One-Time Password) text field widget for Flutter with
 - Backspace to previous field
 - Arrow key navigation
 - Automatic completion detection
+- Paste a whole code into any field, even with spaces, hyphens or surrounding text
 
 ## Screenshots
 

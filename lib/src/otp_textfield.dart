@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -38,6 +40,15 @@ import 'styles/field_decoration_builder.dart';
 /// - [OTPInputType.number] - Only numeric digits (default)
 /// - [OTPInputType.text] - Only alphabetic characters
 /// - [OTPInputType.any] - Both numbers and letters
+///
+/// ## Pasting
+///
+/// An edit that inserts more than one character into a field is a paste.
+/// Only the characters [inputType] allows are kept. When exactly one per
+/// field remains, every field is filled from the first, whichever field
+/// received the paste; [onChange] and then [onCompleted] are called once with
+/// the full code, and the receiving field loses focus. Otherwise no field
+/// changes and no callback is called.
 ///
 /// ## Theming
 ///
@@ -479,7 +490,122 @@ class _OTPTextFieldState extends State<OTPTextField> {
     return brightness == Brightness.dark ? OTPTheme.dark() : OTPTheme.light();
   }
 
+  /// A pasted code that has been accepted but not yet spread over the fields.
+  String? _pendingPaste;
+
+  /// The field that received [_pendingPaste].
+  int _pendingPasteIndex = 0;
+
+  /// Characters [OTPTextField.inputType] allows in a field.
+  RegExp get _allowedCharacter {
+    switch (widget.inputType) {
+      case OTPInputType.number:
+        return RegExp(r'[0-9]');
+      case OTPInputType.text:
+        return RegExp(r'[a-zA-Z]');
+      case OTPInputType.any:
+        return RegExp(r'[a-zA-Z0-9]');
+    }
+  }
+
+  /// Handles an edit that inserts more than one character into field [index].
+  ///
+  /// Returns null for any other edit. For a paste, keeps the allowed
+  /// characters; when exactly one per field remains, field [index] takes its
+  /// share and the rest is spread by [_applyPendingPaste]. Otherwise the field
+  /// keeps [oldValue].
+  TextEditingValue? _formatPaste(
+    int index,
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final inserted = _insertedText(oldValue, newValue);
+    if (inserted.length <= 1) {
+      return null;
+    }
+
+    final code = _allowedCharacter
+        .allMatches(inserted)
+        .map((m) => m.group(0)!)
+        .join();
+    if (code.length != widget.controllers.length) {
+      return oldValue;
+    }
+
+    _pendingPaste = code;
+    _pendingPasteIndex = index;
+    scheduleMicrotask(_applyPendingPaste);
+    return TextEditingValue(
+      text: code[index],
+      selection: const TextSelection.collapsed(offset: 1),
+    );
+  }
+
+  /// The text [newValue] adds in place of [oldValue]'s selection, or the whole
+  /// of [newValue] when it does not keep the text around that selection.
+  static String _insertedText(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final selection = oldValue.selection;
+    if (!selection.isValid) {
+      return newValue.text;
+    }
+    final before = selection.textBefore(oldValue.text);
+    final after = selection.textAfter(oldValue.text);
+    final text = newValue.text;
+    if (text.length < before.length + after.length ||
+        !text.startsWith(before) ||
+        !text.endsWith(after)) {
+      return text;
+    }
+    return text.substring(before.length, text.length - after.length);
+  }
+
+  /// Writes an accepted paste into every field, then reports it once.
+  void _applyPendingPaste() {
+    final code = _pendingPaste;
+    _pendingPaste = null;
+    if (code == null || !mounted) {
+      return;
+    }
+    for (var i = 0; i < widget.controllers.length; i++) {
+      widget.controllers[i].value = TextEditingValue(
+        text: code[i],
+        selection: const TextSelection.collapsed(offset: 1),
+      );
+    }
+    _reportPaste(widget.onChange, code, 'onChange');
+    _reportPaste(widget.onCompleted, code, 'onCompleted');
+    widget.focusNodes[_pendingPasteIndex].unfocus();
+  }
+
+  /// Calls [callback] with a pasted [code], reporting what it throws to
+  /// [FlutterError] as [EditableText] does for `onChanged`.
+  void _reportPaste(ValueChanged<String>? callback, String code, String name) {
+    if (callback == null) {
+      return;
+    }
+    try {
+      callback(code);
+    } catch (exception, stack) {
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: exception,
+          stack: stack,
+          library: 'flutter_otp_widget',
+          context: ErrorDescription('while calling $name after a paste'),
+        ),
+      );
+    }
+  }
+
   void _onTextChanged(int index, String text) {
+    // A paste reports itself once, from _applyPendingPaste.
+    if (_pendingPaste != null) {
+      return;
+    }
+
     // Call onChange callback whenever value changes
     if (widget.onChange != null) {
       final fullText = widget.controllers.map((c) => c.text).join();
@@ -509,25 +635,16 @@ class _OTPTextFieldState extends State<OTPTextField> {
     }
   }
 
-  /// Get input formatters based on input type
-  List<TextInputFormatter> _getInputFormatters() {
-    switch (widget.inputType) {
-      case OTPInputType.number:
-        return [
-          FilteringTextInputFormatter.digitsOnly,
-          LengthLimitingTextInputFormatter(1),
-        ];
-      case OTPInputType.text:
-        return [
-          FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z]')),
-          LengthLimitingTextInputFormatter(1),
-        ];
-      case OTPInputType.any:
-        return [
-          FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
-          LengthLimitingTextInputFormatter(1),
-        ];
-    }
+  /// Get input formatters for field [index] based on input type
+  List<TextInputFormatter> _getInputFormatters(int index) {
+    return [
+      TextInputFormatter.withFunction(
+        (oldValue, newValue) =>
+            _formatPaste(index, oldValue, newValue) ?? newValue,
+      ),
+      FilteringTextInputFormatter.allow(_allowedCharacter),
+      LengthLimitingTextInputFormatter(1),
+    ];
   }
 
   /// Get keyboard type based on input type or override
@@ -686,7 +803,7 @@ class _OTPTextFieldState extends State<OTPTextField> {
                 cursorHeight: widget.cursorHeight ?? _theme.cursorHeight,
                 cursorWidth: widget.cursorWidth ?? _theme.cursorWidth,
                 decoration: _buildDecoration(index),
-                inputFormatters: _getInputFormatters(),
+                inputFormatters: _getInputFormatters(index),
                 onChanged: (value) {
                   _onTextChanged(index, value);
                 },
