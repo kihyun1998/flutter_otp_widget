@@ -1,0 +1,30 @@
+# Files left out of the published package.
+
+# The root .gitignore, copied: pub reads this file in its place.
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+migrate_working_dir/
+*.iml
+*.ipr
+*.iws
+.idea/
+/pubspec.lock
+**/doc/api/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
+
+# Test coverage output.
+coverage/
+
+# Agent guidance and the territory map.
+docs/
+CLAUDE.md
