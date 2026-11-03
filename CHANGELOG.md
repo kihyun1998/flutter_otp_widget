@@ -1,5 +1,15 @@
 # Changelog
 
+## [Unreleased]
+
+### Features
+- Every field now sends `AutofillHints.oneTimeCode` to the platform by default, so the keyboard can offer a one-time code it received, such as one from an SMS. A new `autofillHints` parameter replaces the hints on every field; `null` sends no autofill information, which on Android and web also turns autofill off. An autofilled code is handled as a paste.
+
+### Behaviour changes
+- Fields that set no `autofillHints` now send `oneTimeCode` instead of no hints, so the platform may offer codes where it offered nothing before. Pass `autofillHints: null` to keep them out of autofill.
+- On web, a field with `obscureText` and the default hint is now a DOM `text` input instead of `password`, a result of Flutter's web autofill handling. Pass `autofillHints: null` to keep it a password input.
+- A field without focus now refuses a paste. This keeps a code that an `AutofillGroup` fills into every field from being reported twice.
+
 ## [1.1.0]
 
 ### Features

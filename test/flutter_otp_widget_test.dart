@@ -26,6 +26,9 @@ class _Harness {
   Future<void> pump({
     OTPInputType inputType = OTPInputType.number,
     bool enabled = true,
+    Iterable<String>? autofillHints = const [AutofillHints.oneTimeCode],
+    bool inAutofillGroup = false,
+    void Function(_Harness h, String code)? onChange,
     void Function(_Harness h, String code)? onCompleted,
   }) async {
     addTearDown(() {
@@ -36,21 +39,26 @@ class _Harness {
         f.dispose();
       }
     });
+    final Widget field = OTPTextField(
+      controllers: controllers,
+      focusNodes: focusNodes,
+      textStyle: const TextStyle(fontSize: 20),
+      inputType: inputType,
+      enabled: enabled,
+      autofillHints: autofillHints,
+      onChange: (code) {
+        changes.add(code);
+        onChange?.call(this, code);
+      },
+      onCompleted: (code) {
+        completions.add(code);
+        onCompleted?.call(this, code);
+      },
+    );
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: OTPTextField(
-            controllers: controllers,
-            focusNodes: focusNodes,
-            textStyle: const TextStyle(fontSize: 20),
-            inputType: inputType,
-            enabled: enabled,
-            onChange: changes.add,
-            onCompleted: (code) {
-              completions.add(code);
-              onCompleted?.call(this, code);
-            },
-          ),
+          body: inAutofillGroup ? AutofillGroup(child: field) : field,
         ),
       ),
     );
@@ -240,19 +248,7 @@ void main() {
     testWidgets('an onChange that throws is reported and does not stop the '
         'paste', (tester) async {
       final h = _Harness(tester, length: 4);
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: OTPTextField(
-              controllers: h.controllers,
-              focusNodes: h.focusNodes,
-              textStyle: const TextStyle(fontSize: 20),
-              onChange: (_) => throw StateError('consumer'),
-              onCompleted: h.completions.add,
-            ),
-          ),
-        ),
-      );
+      await h.pump(onChange: (_, _) => throw StateError('consumer'));
 
       await h.paste(1, '1234');
 
@@ -316,24 +312,14 @@ void main() {
 
     testWidgets('fields cleared in onChange do not complete', (tester) async {
       final h = _Harness(tester, length: 4);
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: OTPTextField(
-              controllers: h.controllers,
-              focusNodes: h.focusNodes,
-              textStyle: const TextStyle(fontSize: 20),
-              onChange: (value) {
-                if (value.length == 4) {
-                  for (final c in h.controllers) {
-                    c.clear();
-                  }
-                }
-              },
-              onCompleted: h.completions.add,
-            ),
-          ),
-        ),
+      await h.pump(
+        onChange: (h, value) {
+          if (value.length == 4) {
+            for (final c in h.controllers) {
+              c.clear();
+            }
+          }
+        },
       );
 
       for (var i = 0; i < 4; i++) {
@@ -355,6 +341,162 @@ void main() {
       await h.type(0, '2');
 
       expect(h.texts, ['1', '', '', '']);
+      expect(h.completions, isEmpty);
+    });
+  });
+
+  group('autofill', () {
+    /// The `autofill` part of the configuration field [index] sends to the
+    /// platform when it gains focus.
+    Future<Object?> autofillSent(_Harness h, int index) async {
+      await h.tester.tap(h.field(index));
+      await h.tester.pump();
+      return h.tester.testTextInput.setClientArgs?['autofill'];
+    }
+
+    testWidgets('every field asks the platform for a one-time code by '
+        'default', (tester) async {
+      final h = _Harness(tester, length: 4);
+      await h.pump();
+
+      for (var i = 0; i < 4; i++) {
+        final autofill = await autofillSent(h, i);
+        expect(autofill, isA<Map<String, dynamic>>());
+        expect((autofill! as Map)['hints'], [AutofillHints.oneTimeCode]);
+      }
+    });
+
+    testWidgets('autofillHints replaces the hints on every field', (
+      tester,
+    ) async {
+      final h = _Harness(tester, length: 4);
+      await h.pump(autofillHints: const [AutofillHints.postalCode]);
+
+      for (var i = 0; i < 4; i++) {
+        final autofill = await autofillSent(h, i);
+        expect((autofill! as Map)['hints'], [AutofillHints.postalCode]);
+      }
+    });
+
+    testWidgets('autofillHints null sends no autofill information', (
+      tester,
+    ) async {
+      final h = _Harness(tester, length: 4);
+      await h.pump(autofillHints: null);
+
+      for (var i = 0; i < 4; i++) {
+        expect(await autofillSent(h, i), isNull);
+        expect(tester.testTextInput.setClientArgs, isNotNull);
+      }
+    });
+
+    for (final index in [0, 2]) {
+      testWidgets('a code autofilled into empty field $index fills every '
+          'field', (tester) async {
+        final h = _Harness(tester, length: 6);
+        await h.pump();
+        await tester.tap(h.field(index));
+        await tester.pump();
+
+        tester
+            .state<EditableTextState>(h.field(index))
+            .autofill(
+              const TextEditingValue(
+                text: '123456',
+                selection: TextSelection.collapsed(offset: 6),
+              ),
+            );
+        await tester.pump();
+
+        expect(h.texts, ['1', '2', '3', '4', '5', '6']);
+        expect(h.changes, ['123456']);
+        expect(h.completions, ['123456']);
+      });
+    }
+
+    /// Fills [code] into every field of an [AutofillGroup] the way Android's
+    /// engine does: the focused field first, then the others by tag in a
+    /// second message (`TextInputPlugin.autofill`).
+    Future<void> groupAutofill(_Harness h, String code) async {
+      final config = h.tester.testTextInput.setClientArgs!;
+      final focused = (config['autofill'] as Map)['uniqueIdentifier'];
+      final ids = [
+        for (final field in config['fields'] as List)
+          ((field as Map)['autofill'] as Map)['uniqueIdentifier'] as String,
+      ];
+      final value = TextEditingValue(
+        text: code,
+        selection: TextSelection.collapsed(offset: code.length),
+      );
+      h.tester.testTextInput.updateEditingValue(value);
+      await h.tester.pump();
+      await h.tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+        SystemChannels.textInput.name,
+        SystemChannels.textInput.codec.encodeMethodCall(
+          MethodCall('TextInputClient.updateEditingStateWithTag', <dynamic>[
+            -1,
+            {
+              for (final id in ids)
+                if (id != focused) id: value.toJSON(),
+            },
+          ]),
+        ),
+        (_) {},
+      );
+      await h.tester.pump();
+    }
+
+    for (final refocus in [false, true]) {
+      testWidgets('a code autofilled into every field of an AutofillGroup '
+          'reports once${refocus ? ' when onCompleted refocuses' : ''}', (
+        tester,
+      ) async {
+        final h = _Harness(tester, length: 6);
+        await h.pump(
+          inAutofillGroup: true,
+          onCompleted: refocus
+              ? (h, _) {
+                  for (final c in h.controllers) {
+                    c.clear();
+                  }
+                  h.focusNodes[0].requestFocus();
+                }
+              : null,
+        );
+        await tester.tap(h.field(0));
+        await tester.pump();
+        expect(tester.testTextInput.setClientArgs?['fields'], hasLength(6));
+
+        await groupAutofill(h, '123456');
+
+        expect(h.changes, ['123456']);
+        expect(h.completions, ['123456']);
+        expect(
+          h.texts,
+          refocus ? ['', '', '', '', '', ''] : ['1', '2', '3', '4', '5', '6'],
+        );
+      });
+    }
+
+    testWidgets('a field without focus refuses a code filled into it', (
+      tester,
+    ) async {
+      final h = _Harness(tester, length: 4);
+      await h.pump(inAutofillGroup: true);
+      await h.type(0, '9');
+
+      tester
+          .state<EditableTextState>(h.field(2))
+          .autofill(
+            const TextEditingValue(
+              text: '1234',
+              selection: TextSelection.collapsed(offset: 4),
+            ),
+          );
+      await tester.pump();
+
+      expect(h.texts, ['9', '', '', '']);
+      expect(h.changes, ['9']);
       expect(h.completions, isEmpty);
     });
   });

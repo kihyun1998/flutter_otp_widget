@@ -44,11 +44,13 @@ import 'styles/field_decoration_builder.dart';
 /// ## Pasting
 ///
 /// An edit that inserts more than one character into a field is a paste.
-/// Only the characters [inputType] allows are kept. When exactly one per
+/// Only the focused field accepts one, and only the characters [inputType]
+/// allows are kept. When exactly one per
 /// field remains, every field is filled from the first, whichever field
 /// received the paste; [onChange] and then [onCompleted] are called once with
 /// the full code, and the receiving field loses focus before [onCompleted].
-/// Otherwise no field changes and no callback is called.
+/// Otherwise no field changes and no callback is called. A code the platform
+/// autofills into a field (see [autofillHints]) is handled the same way.
 ///
 /// ## Theming
 ///
@@ -400,6 +402,29 @@ class OTPTextField extends StatefulWidget {
   /// ```
   final TextInputType? keyboardType;
 
+  /// The autofill hints every field sends to the platform.
+  ///
+  /// Defaults to `[AutofillHints.oneTimeCode]`, which lets the platform offer
+  /// a code it received, such as one from an SMS. Every field carries the
+  /// same hints. A code the platform fills into a field is handled as a
+  /// paste: see Pasting in [OTPTextField].
+  ///
+  /// When null, no field sends autofill information to the platform; on
+  /// Android and web this also turns autofill off, as for
+  /// [TextField.autofillHints].
+  ///
+  /// On web, a field with [obscureText] and hints other than a password hint
+  /// is given the DOM input type `text`; pass null to keep it a password
+  /// input.
+  ///
+  /// Example:
+  /// ```dart
+  /// OTPTextField(
+  ///   autofillHints: null, // Send no autofill information
+  /// )
+  /// ```
+  final Iterable<String>? autofillHints;
+
   const OTPTextField({
     super.key,
     required this.controllers,
@@ -427,6 +452,7 @@ class OTPTextField extends StatefulWidget {
     this.selectionHandleColor,
     this.textCapitalization = TextCapitalization.none,
     this.keyboardType,
+    this.autofillHints = const [AutofillHints.oneTimeCode],
   }) : assert(
          controllers.length == focusNodes.length,
          'Controllers and FocusNodes must have the same length',
@@ -515,10 +541,11 @@ class _OTPTextFieldState extends State<OTPTextField> {
 
   /// Handles an edit that inserts more than one character into field [index].
   ///
-  /// Returns null for any other edit. For a paste, keeps the allowed
-  /// characters; when exactly one per field remains, field [index] takes its
-  /// share and the rest is spread by [_applyPendingPaste]. Otherwise the field
-  /// keeps [oldValue].
+  /// Returns null for any other edit. A field without focus keeps [oldValue].
+  /// For a paste into the focused field, keeps the allowed characters; when
+  /// exactly one per field remains, field [index] takes its share and the
+  /// rest is spread by [_applyPendingPaste]. Otherwise the field keeps
+  /// [oldValue].
   TextEditingValue? _formatPaste(
     int index,
     TextEditingValue oldValue,
@@ -527,6 +554,9 @@ class _OTPTextFieldState extends State<OTPTextField> {
     final inserted = _insertedText(oldValue, newValue);
     if (inserted.length <= 1) {
       return null;
+    }
+    if (!widget.focusNodes[index].hasFocus) {
+      return oldValue;
     }
 
     final code = _allowedCharacter
@@ -794,6 +824,7 @@ class _OTPTextFieldState extends State<OTPTextField> {
                 maxLength: 1,
                 obscureText: widget.obscureText,
                 obscuringCharacter: widget.obscuringCharacter,
+                autofillHints: widget.autofillHints,
                 style: widget.enabled
                     ? widget.textStyle
                     : widget.textStyle.copyWith(

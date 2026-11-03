@@ -10,7 +10,9 @@ all controllers, and the single `onChange`/`onCompleted` report.
 
 Issue #4: exact length or nothing, replace all fields from the first, one
 `onChange` then one `onCompleted`, the receiving field loses focus. When it
-loses focus is in [completion-focus](completion-focus.md).
+loses focus is in [completion-focus](completion-focus.md). Only the focused
+field accepts a paste: chosen by the maintainer during #11 (see
+[autofill](autofill.md)).
 
 ## Design model
 
@@ -35,6 +37,12 @@ loses focus is in [completion-focus](completion-focus.md).
   that clears the fields in `onCompleted` would have the receiving field
   overwritten when the formatter's value lands. The microtask runs after that
   write, whether or not `onChanged` fired.
+- **A field without focus refuses a paste.** Every user paste and keyboard
+  insertion goes to the focused field; an unfocused field receives several
+  characters only when the platform fills it by tag. The accessibility
+  set-text action is offered only to a focused field
+  (`RenderEditable.describeSemanticsConfiguration`, `hasFocus && !readOnly`). Refusing those keeps a
+  group fill from being reported twice ([autofill](autofill.md)).
 - **`_onTextChanged` ignores the receiving field's own `onChanged`** while a
   paste is pending, so the paste is reported once. Controllers written from
   code do not fire `onChanged`.
@@ -63,11 +71,8 @@ loses focus is in [completion-focus](completion-focus.md).
   character: `1` with the cursor at 1, updated to `123456`, reads as `23456`
   and is refused (code path read 2026-11-02). Two SDK paths send a whole value
   with the cursor at the end: the accessibility `setText` action
-  (`RenderEditable._handleSetText`) and `EditableTextState.autofill`. The
-  widget passes no `autofillHints`; `TextField`'s default is an empty list,
-  which still sends an enabled `AutofillConfiguration` with no hints
-  (`widgets/editable_text.dart`, `textInputConfiguration`). Whether a platform
-  autofills such a field was not measured.
+  (`RenderEditable._handleSetText`) and `EditableTextState.autofill`, which
+  Android's autofill also uses; see [autofill](autofill.md).
 - Consumer callbacks run from the microtask, outside `EditableText`'s
   try/catch, so `_reportPaste` catches and reports to `FlutterError` itself;
   a throwing `onChange` does not stop `onCompleted`.

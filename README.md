@@ -35,6 +35,7 @@ A highly customizable OTP (One-Time Password) text field widget for Flutter with
 - Arrow key navigation
 - Automatic completion detection
 - Paste a whole code into any field, even with spaces, hyphens or surrounding text
+- One-time-code autofill: the keyboard can offer a code received by SMS
 
 ## Screenshots
 
@@ -264,6 +265,7 @@ OTPTextField(
 | `autoFocus` | `bool` | false | Auto-focus first field |
 | `hasError` | `bool` | false | Show error state |
 | `textCapitalization` | `TextCapitalization` | none | Text capitalization mode |
+| `autofillHints` | `Iterable<String>?` | `[AutofillHints.oneTimeCode]` | Autofill hints for every field; null sends none (and turns autofill off on Android and web) |
 
 See the [API documentation](https://pub.dev/documentation/flutter_otp_widget/latest/) for complete parameter list.
 
