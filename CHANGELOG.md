@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.2.0]
 
 ### Features
 - Every field now sends `AutofillHints.oneTimeCode` to the platform by default, so the keyboard can offer a one-time code it received, such as one from an SMS. A new `autofillHints` parameter replaces the hints on every field; `null` sends no autofill information, which on Android and web also turns autofill off. An autofilled code is handled as a paste.
